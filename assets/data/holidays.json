@@ -1,0 +1,26 @@
+[
+  {
+    "month": "MAY",
+    "day": "26",
+    "name": "Eid ul Adha",
+    "type": "National Holiday"
+  },
+  {
+    "month": "JUN",
+    "day": "07",
+    "name": "Eid ul Adha Holiday",
+    "type": "National Holiday"
+  },
+  {
+    "month": "AUG",
+    "day": "15",
+    "name": "National Mourning Day",
+    "type": "National Holiday"
+  },
+  {
+    "month": "DEC",
+    "day": "16",
+    "name": "Victory Day",
+    "type": "National Holiday"
+  }
+]
