@@ -27,6 +27,7 @@ class LeaveBalance {
 class LeaveFormState {
   final int? leaveTypeId;
   final DateTime fromDate;
+  final String? approverId;
   final DateTime toDate;
   final String reason;
   final bool isSubmitting;
@@ -34,6 +35,7 @@ class LeaveFormState {
 
   const LeaveFormState({
     this.leaveTypeId,
+    this.approverId,
     required this.fromDate,
     required this.toDate,
     this.reason = '',
@@ -46,6 +48,7 @@ class LeaveFormState {
   LeaveFormState copyWith({
     int? leaveTypeId,
     DateTime? fromDate,
+    String? approverId,
     DateTime? toDate,
     String? reason,
     bool? isSubmitting,
@@ -53,6 +56,7 @@ class LeaveFormState {
   }) {
     return LeaveFormState(
       leaveTypeId: leaveTypeId ?? this.leaveTypeId,
+      approverId: approverId ?? this.approverId,
       fromDate: fromDate ?? this.fromDate,
       toDate: toDate ?? this.toDate,
       reason: reason ?? this.reason,
@@ -62,7 +66,6 @@ class LeaveFormState {
   }
 }
 
-// shared between provider (auto-select) and page (dropdown graying)
 bool isLeaveExhausted(LeaveType type, LeaveBalance? balance) {
   if (balance == null) return false;
   final name = type.name.trim().toLowerCase();

@@ -36,7 +36,6 @@ class EmployeeNotifier extends StateNotifier<EmployeeState> {
 
       final userId = supabase.auth.currentUser!.id;
 
-      // ✅ Fetch all 3 tables in parallel
       final results = await Future.wait([
         supabase.from('employees').select().eq('user_id', userId).single(),
         supabase
@@ -47,17 +46,23 @@ class EmployeeNotifier extends StateNotifier<EmployeeState> {
         supabase.from('leave_stats').select().eq('user_id', userId).single(),
       ]);
 
-      print('✅ Employee: ${results[0]}');
-      print('✅ Attendance: ${results[1]}');
-      print('✅ Leave: ${results[2]}');
+      final employeeRow = results[0] as Map<String, dynamic>;
+      final attendanceRow = results[1] as Map<String, dynamic>;
+      final leaveRow = results[2] as Map<String, dynamic>;
 
-      // ✅ Merge all 3 into one flat map
       final merged = {
-        ...results[0] as Map<String, dynamic>,
-        ...results[1] as Map<String, dynamic>,
-        ...results[2] as Map<String, dynamic>,
+        ...employeeRow,
+        ...attendanceRow,
+        ...leaveRow,
+        'id':
+            employeeRow['id'], // force employees.id to win, regardless of later spreads
+        'supervisor_id': employeeRow['supervisor_id'],
       };
 
+      state = state.copyWith(
+        data: EmployeeData.fromJson(merged),
+        isLoading: false,
+      );
       print('✅ Merged: $merged');
 
       state = state.copyWith(

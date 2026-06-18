@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/leave_model.dart';
-
+import '../models/employee_data.dart';
+import 'employee_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import "../models/leave_history_data.dart";
 
 final supabase = Supabase.instance.client;
 
@@ -31,13 +33,87 @@ final leaveBalanceProvider = FutureProvider<LeaveBalance>((ref) async {
   );
 });
 
+final supervisorProvider = FutureProvider<EmployeeData?>((ref) async {
+  final employeeState = ref.watch(employeeProvider);
+  final supervisorId = employeeState.data?.supervisorId;
+  if (supervisorId == null) return null;
+
+  final response = await supabase
+      .from('employees')
+      .select()
+      .eq('id', supervisorId)
+      .single();
+
+  return EmployeeData.fromJson(response);
+});
+
+final leaveHistoryProvider = FutureProvider<List<LeaveHistoryData>>((
+  ref,
+) async {
+  final userId = supabase.auth.currentUser!.id;
+  final results = await Future.wait([
+    supabase
+        .from('leave_applications')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false),
+    supabase.from('leave_type').select(),
+    supabase.from('employees').select('id, name'),
+  ]);
+  final applications = results[0] as List;
+  final leaveTypes = results[1] as List;
+  final employees = results[2] as List;
+  final typeNameById = <int, String>{
+    for (final t in leaveTypes) t['id'] as int: t["name"] as String,
+  };
+  final nameById = <String, String>{
+    for (final e in employees) e["id"] as String: e["name"] as String,
+  };
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  String formatDate(DateTime d) => '${months[d.month - 1]} ${d.day}, ${d.year}';
+  String formatShortDate(DateTime d) => '${months[d.month - 1]} ${d.day}';
+  return applications.map((row) {
+    final map = row as Map<String, dynamic>;
+    final leaveId = map['leave_id'] as int?;
+    final approverId = map['approver_id'] as String?;
+    final fromDate = DateTime.parse(map['from_date'] as String);
+    final toDate = DateTime.parse(map['to_date'] as String);
+    final createdAt = map['created_at'] != null
+        ? DateTime.parse(map['created_at'] as String)
+        : null;
+    final totalDays = map['total_days'] as int? ?? 0;
+    return LeaveHistoryData(
+      type: leaveId != null ? typeNameById[leaveId] : null,
+      applied: createdAt != null ? formatDate(createdAt) : null,
+      from: formatShortDate(fromDate),
+      to: formatShortDate(toDate),
+      days: '$totalDays ${totalDays == 1 ? "Day" : "Days"}',
+      supervisor: approverId != null ? nameById[approverId] : null,
+      status: map['status'] as String?,
+      reason: map['reason'] as String?,
+    );
+  }).toList();
+});
+
+// viewmodel
 class LeaveFormNotifier extends StateNotifier<LeaveFormState> {
   final Ref ref;
 
   LeaveFormNotifier(this.ref)
     : super(LeaveFormState(fromDate: DateTime.now(), toDate: DateTime.now())) {
-    // re-runs whenever leaveTypesProvider data changes, and tries to pick a
-    // default as long as nothing is selected yet
     ref.listen<AsyncValue<List<LeaveType>>>(leaveTypesProvider, (
       previous,
       next,
@@ -65,7 +141,6 @@ class LeaveFormNotifier extends StateNotifier<LeaveFormState> {
 
   void resetForm() {
     state = LeaveFormState(fromDate: DateTime.now(), toDate: DateTime.now());
-    // leaveTypeId is null again after reset — try to re-select a default
     final types = ref.read(leaveTypesProvider).asData?.value;
     if (types != null) _trySelectDefault(types);
   }
@@ -107,10 +182,12 @@ class LeaveFormNotifier extends StateNotifier<LeaveFormState> {
       final userId = supabase.auth.currentUser!.id;
       final empResponse = await supabase
           .from("employees")
-          .select("id")
+          .select("id, supervisor_id")
           .eq("user_id", userId)
           .single();
       final employeeId = empResponse['id'];
+      final supervisorId = empResponse['supervisor_id'];
+
       String? attachmentUrl;
       if (state.attachmentPath != null) {
         attachmentUrl = await _uploadAttachment(
@@ -122,6 +199,7 @@ class LeaveFormNotifier extends StateNotifier<LeaveFormState> {
         'user_id': userId,
         'employee_id': employeeId,
         'leave_id': state.leaveTypeId,
+        'approver_id': supervisorId,
         'from_date': state.fromDate.toIso8601String().split('T')[0],
         'to_date': state.toDate.toIso8601String().split('T')[0],
         'total_days': state.totalDays,
@@ -131,9 +209,7 @@ class LeaveFormNotifier extends StateNotifier<LeaveFormState> {
       });
 
       resetForm();
-      ref.invalidate(
-        leaveBalanceProvider,
-      ); // refresh banner counts after submit
+      ref.invalidate(leaveBalanceProvider);
       onSuccess();
     } catch (e) {
       print("Error  $e");

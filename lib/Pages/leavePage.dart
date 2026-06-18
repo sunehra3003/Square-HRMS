@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import '../providers/leave_provider.dart';
 import 'dart:io';
 import "../widget/common_appbar.dart";
+import "../providers/employee_provider.dart";
+import '../models/employee_data.dart';
 
 const kNavy = Color(0xFF1B2E5E);
 const kGreen = Color(0xFF2E7D32);
@@ -38,8 +40,8 @@ class _LeavePageState extends ConsumerState<LeavePage> {
     final leaveTypesAsync = ref.watch(leaveTypesProvider);
     final form = ref.watch(leaveFormProvider);
     final notifier = ref.read(leaveFormProvider.notifier);
+    final supervisorAsync = ref.watch(supervisorProvider);
 
-    // whenever the form resets (reason goes back to ''), clear the visible text box
     ref.listen(leaveFormProvider, (previous, next) {
       if (next.reason.isEmpty && _reasonController.text.isNotEmpty) {
         _reasonController.clear();
@@ -145,7 +147,7 @@ class _LeavePageState extends ConsumerState<LeavePage> {
                   const SizedBox(height: 20),
                   _fieldLabel('Approving Supervisor'),
                   const SizedBox(height: 8),
-                  const _SupervisorCard(),
+                  _SupervisorCard(supervisorAsync: supervisorAsync),
                 ],
               ),
 
@@ -413,6 +415,7 @@ class _LeavePageState extends ConsumerState<LeavePage> {
 class _LeaveTypeDropdown extends StatelessWidget {
   final AsyncValue<List<LeaveType>> leaveTypesAsync;
   final AsyncValue<LeaveBalance> balanceAsync;
+
   final int? value;
   final ValueChanged<int> onChanged;
 
@@ -669,42 +672,95 @@ class _DashedBorderPainter extends CustomPainter {
 }
 
 class _SupervisorCard extends StatelessWidget {
-  const _SupervisorCard();
+  final AsyncValue<EmployeeData?> supervisorAsync;
+
+  const _SupervisorCard({required this.supervisorAsync});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: const Row(
-        children: [
-          CircleAvatar(
-            backgroundImage: AssetImage('assets/download.jpg'),
-            radius: 22,
+    return supervisorAsync.when(
+      loading: () => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: const Center(
+          child: SizedBox(
+            height: 18,
+            width: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Dr. Ahmed Zubayer',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                Text(
-                  'Production Manager, Unit 4',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
+        ),
+      ),
+      error: (_, __) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: const Text(
+          'Failed to load supervisor',
+          style: TextStyle(color: Colors.red),
+        ),
+      ),
+      data: (supervisor) {
+        if (supervisor == null) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade300),
             ),
+            child: const Text(
+              'No supervisor assigned',
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
           ),
-          Icon(Icons.swap_horiz_rounded, color: Colors.grey, size: 22),
-        ],
-      ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundImage:
+                    (supervisor.image != null && supervisor.image!.isNotEmpty)
+                    ? NetworkImage(supervisor.image!) as ImageProvider
+                    : const AssetImage('assets/download.jpg'),
+                radius: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      supervisor.name ?? 'Unknown',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      supervisor.role ?? '',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

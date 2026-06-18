@@ -1,18 +1,22 @@
 class EmployeeData {
+  String? id; // NEW
   String? name;
   String? role;
   String? department;
   String? status;
   String? image;
+  String? supervisorId; // NEW
   Attendance? attendance;
   Stats? stats;
 
   EmployeeData.fromJson(Map<String, dynamic> json) {
+    id = json['id'] as String?;
     name = json['name'];
     role = json['role'];
     department = json['department'];
     status = json['status'];
     image = json['image'] as String?;
+    supervisorId = json['supervisor_id'] as String?;
     attendance = Attendance(
       percent: (json['attendance_percent'] as num?)?.toDouble(),
       presentDays: json['present_days'],

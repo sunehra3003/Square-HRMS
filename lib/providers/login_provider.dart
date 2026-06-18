@@ -38,7 +38,22 @@ class LoginNotifier extends StateNotifier<LoginState> {
   Future<void> signup(String email, String password) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      await supabase.auth.signUp(email: email, password: password);
+      final response = await supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final identities = response.user?.identities;
+      if (identities != null && identities.isEmpty) {
+        // Email already belongs to a confirmed account
+        state = state.copyWith(
+          isLoading: false,
+          error:
+              'An account with this email already exists. Please log in instead.',
+        );
+        return;
+      }
+
       state = state.copyWith(
         isLoading: false,
         step: AuthStep.otp,
@@ -71,10 +86,13 @@ class LoginNotifier extends StateNotifier<LoginState> {
   Future<void> resendOtp() async {
     try {
       state = state.copyWith(isLoading: true, error: null);
-      await supabase.auth.resend(type: OtpType.email, email: state.email);
+      await supabase.auth.resend(type: OtpType.signup, email: state.email);
       state = state.copyWith(isLoading: false);
     } on AuthException catch (e) {
       state = state.copyWith(isLoading: false, error: e.message);
+    } catch (e) {
+      print('❌ Error: $e');
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 }
