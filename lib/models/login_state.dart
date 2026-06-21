@@ -1,5 +1,3 @@
-// models/login_state.dart
-
 enum AuthStep { login, signup, otp }
 
 class LoginState {

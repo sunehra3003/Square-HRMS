@@ -1,5 +1,5 @@
 import "package:flutter/material.dart";
-import 'package:new_app/Pages/attendencepage.dart';
+import 'package:new_app/Pages/attendence_page.dart';
 import 'package:new_app/Pages/dashboard.dart';
 import 'package:new_app/Pages/leavePage.dart';
 import 'package:new_app/Pages/profile.dart';

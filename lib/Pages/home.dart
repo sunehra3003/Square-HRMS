@@ -265,7 +265,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Title ──────────────────────────────
             const Text(
               'Verify Email',
               style: TextStyle(
@@ -281,7 +280,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             const SizedBox(height: 20),
 
-            // ── OTP Field ──────────────────────────
             TextField(
               controller: _otpController,
               keyboardType: TextInputType.number,
@@ -295,12 +293,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
 
-            // ── Error ──────────────────────────────
             _buildErrorMessage(state.error),
 
             const SizedBox(height: 12),
 
-            // ── Verify Button ───────────────────────
             _buildSubmitButton(
               state.isLoading,
               () => notifier.verifyOTP(
@@ -312,7 +308,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
             const SizedBox(height: 12),
 
-            // ── Resend OTP ──────────────────────────
             Center(
               child: TextButton(
                 onPressed: state.isLoading ? null : notifier.resendOtp,
@@ -320,7 +315,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
 
-            // ── Back ────────────────────────────────
             Center(
               child: TextButton(
                 onPressed: notifier.toggleAuthStep,
@@ -355,12 +349,10 @@ class _HomePageState extends ConsumerState<HomePage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // ── Header ─────────────────────────
                 _buildHeader(),
 
                 const SizedBox(height: 10),
 
-                // ── Show OTP or Auth card ───────────
                 if (state.step == AuthStep.otp)
                   _buildOtpCard(state, notifier)
                 else
