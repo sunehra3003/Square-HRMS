@@ -139,4 +139,3 @@ April 2026 – June 2026
 
 ---
 
-Want me to write the README for the Leaf Disease Detection project as well?
